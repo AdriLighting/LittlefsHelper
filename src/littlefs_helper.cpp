@@ -243,7 +243,7 @@ void LH_file::close(){
   #ifdef DEBUG_LH
     uint32_t s = millis();
     _file.close();  
-    Serial.printf_P(PSTR("[LH_file::close][duration: %d ms]\n"), millis() - s);
+    Serial.printf_P(PSTR("[LH_file::close][_fileMod: %s][duration: %d ms]\n"), _fileMod, millis() - s);
   #else
     _file.close();  
   #endif
@@ -307,11 +307,11 @@ boolean LH_file::readConfig() {
     Serial.printf("[DeserializationError]\n");
     return false;
   }
-  Serial.printf("[readConfig][_line_maxSize: %d][_line_total: %d]\n", _line_maxSize, _line_total);
-
   _line_maxSize   = DOC_LHCONF[F("lsm")].as<uint32_t>(); 
   _line_total     = DOC_LHCONF[F("lt")].as<uint32_t>(); 
-
+  #ifdef DEBUG_LH
+    Serial.printf("[readConfig][_fileMod: %s][_line_maxSize: %d][_line_total: %d]\n", _fileMod, _line_maxSize, _line_total);
+  #endif
   return true;
 }
 
