@@ -225,11 +225,11 @@ void LH_file::open(File & f, const char * mod){
   f = LittleFS.open(_path, mod);
 }
 void LH_file::open(const char * mod){
+  #ifdef DEBUG_LH
+    Serial.printf_P(PSTR("[LH_file::open >START<][_fileClose: %d][mod: %s]\n"), _fileClose, mod );
+  #endif  
   if (!_fileClose) {
     if (_fileMod != mod) {
-      #ifdef DEBUG_LH
-        Serial.printf_P(PSTR("[LH_file::open][_fileMod: %s][mod: %s]\n"), _fileMod, mod );
-      #endif
       close();
     }
   }
@@ -237,6 +237,9 @@ void LH_file::open(const char * mod){
   _file = LittleFS.open(_path, mod);
   if (_file)  _fileClose = false;
   else        _fileClose = true;
+  #ifdef DEBUG_LH
+    Serial.printf_P(PSTR("[LH_file::open >END<][_fileClose: %d]\n"), _fileClose );
+  #endif   
 }
 void LH_file::close(){
   if (_fileClose) return;
