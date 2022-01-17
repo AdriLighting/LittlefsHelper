@@ -68,17 +68,18 @@ void l_1(){
   // LH_fileManager * _LH_fileManager = new LH_fileManager();
 
 
-  uint32_t  tNow, tDif;
+  uint32_t  tNow, tDif, lrSize;
   String    result;
   File      f;
+  File      f_2;
   char      buf[10];
   String    line      = "";
-  String    line_2    = "";
   String    lineRead  = "";
-  uint8_t   start     = 0;
 
   if(LittleFS.exists(F("/myFile_1.txt")))  LittleFS.remove(F("/myFile_1.txt"));
+  if(LittleFS.exists(F("/myFile_2.txt")))  LittleFS.remove(F("/myFile_2.txt"));
   LH_file * _LH_file    = new LH_file(f, "/myFile_1.txt");
+  LH_file * _LH_file_2  = new LH_file(f_2, "/myFile_2.txt");
 
   // DynamicJsonDocument doc(2048);
   // JsonObject root = doc.to<JsonObject>();
@@ -88,7 +89,7 @@ void l_1(){
 
   sprintf(buf, "%03x%03x%03x", 255, 5, 10);     // c1
   line += String(buf) + " "; 
-  sprintf(buf, "%03x%03x%03x", 220, 33, 00);    // coff
+  sprintf(buf, "%03x%03x%03x", 220, 33, 001);   // coff
   line += String(buf) + " ";
   sprintf(buf, "%03x%03x%03x", 80, 200, 222);   // hsv
   line += String(buf) + " ";
@@ -98,13 +99,13 @@ void l_1(){
   line += String(buf) + " ";
   sprintf(buf, "%03x%03x", true, true);         //select,onoff,
   line += String(buf) + " ";
-  // sprintf(buf, "%03x%03x%03x", 0, 5, 80);        //type,pin,size
-  // line += String(buf) + " ";
+  sprintf(buf, "%03x%03x%03x", 0, 5, 80);       //type,pin,size
+  line += String(buf) + " ";
   sprintf(buf, "%03x%03x", 12, 1);              //eff_nb,eff_colorMod
   line += String(buf) + " ";
   sprintf(buf, "%03x%03x%03x", 255, 255, 255);  //eff_c1
   line += String(buf) + " ";
-  sprintf(buf, "%03x%03x%03x", 80, 0, 1);   //eff_c2
+  sprintf(buf, "%03x%03x%03x", 80, 0, 1);       //eff_c2
   line += String(buf) + " ";
   Serial.printf_P(PSTR("[length: %d]\n"), line.length());
 
@@ -112,23 +113,20 @@ void l_1(){
   _LH_file->newLine(line);
   _LH_file->newLine(line);
   _LH_file->newLine(line);
+  _LH_file->newLine(line);
   tDif = millis() - tNow;
   Serial.printf_P(PSTR("[newLine duration: %d]\n"), tDif);
 
+  lrSize = _LH_file->readLine(1, lineRead);
+  Serial.printf_P(PSTR("[_LH_file readLineByte: %d-%d]\n%s\n"), 1, lrSize, lineRead.c_str());
 
-  start     = 0;
-  lineRead  = "";
-
-  _LH_file->readLineByte(1, lineRead);
-  Serial.printf_P(PSTR("[_LH_file readLineByte: %d]\n%s\n"), 1, lineRead.c_str());
-
-
+  uint8_t start = 0;
   int LarraySize;
   String * Larray = explode(lineRead, ' ', LarraySize);
   for(int i = 0; i < LarraySize-1; ++i) {
     Serial.println(Larray[i]);
 
-    line_2 = Larray[i];
+    String line_2 = Larray[i];
     uint8_t len = line_2.length();
 
     if (len == 9) {
@@ -151,21 +149,42 @@ void l_1(){
 
   }
 
-  lineRead ="";
-  _LH_file->readLine(1, lineRead);
-  Serial.printf_P(PSTR("[_LH_file readLine: %d]\n%s\n"), 1, lineRead.c_str());  
+  lrSize = _LH_file->readLine(1, lineRead);
+  Serial.printf_P(PSTR("[_LH_file readLine: %d-%d]\n%s\n"), 1, lrSize, lineRead.c_str());  
 
-  lineRead ="";
   uint8_t charPos = 5 * 10;
-  _LH_file->replaceLineValue("123456 ", 2, charPos);
-  _LH_file->readLine(2, lineRead);
-  Serial.printf_P(PSTR("[_LH_file readLine: %d]\n%s\n"), 2, lineRead.c_str());  
+  _LH_file->replaceLineValue("123456 ", 2, charPos+4);
+  lrSize = _LH_file->readLine(2, lineRead);
+  Serial.printf_P(PSTR("[_LH_file readLine: %d-%d]\n%s\n"), 2, lrSize, lineRead.c_str());  
+
+
+  tNow = millis();
+  _LH_file_2->newLine("Nam quis nulla. Integer malesuada. In in enim a arcu imperdiet malesuada. Sed vel lectus. Donec");
+  _LH_file_2->newLine("Nam quis nulla. Integer malesuada. In in enim a arcu imperdiet malesuada. Sed vel lectus. Donec ");
+  _LH_file_2->newLine("Nam quis---nulla.- In - teger malesuada. -In in enim a -");
+  _LH_file_2->newLine("Nam quis---nulla.- In - teger malesuada. -In in enim a -");
+  tDif = millis() - tNow;
+  Serial.printf_P(PSTR("[newLine duration: %d]\n"), tDif);
+
+  lrSize = _LH_file_2->readLine(3, lineRead);
+  Serial.printf_P(PSTR("[_LH_file_2 readLine: %d-%d]\n%s\n"), 3, lrSize, lineRead.c_str());  
+
+  _LH_file_2->replaceLine("lineRead",1);
+  _LH_file_2->replaceLine("lineRead",2);
+  _LH_file_2->replaceLineValue("test",2,4);
 
 
   delete _LH_file;
+  delete _LH_file_2;
 
   tNow = millis();
   SPIFFS_fileRead("/myFile_1.txt");
+  tDif = millis() - tNow;
+  Serial.printf("[duration: %d]\n", tDif);
+  SPIFFS_printFiles("/");
+
+  tNow = millis();
+  SPIFFS_fileRead("/myFile_2.txt");
   tDif = millis() - tNow;
   Serial.printf("[duration: %d]\n", tDif);
   SPIFFS_printFiles("/");
@@ -185,10 +204,6 @@ void l_1(){
 
 
 
-
-
-
-
 void setup() {
   Serial.begin(115200);
 
@@ -200,9 +215,20 @@ void setup() {
   Serial.setDebugOutput(false);
 
   LittleFS.begin();
-  // LittleFS.format();
 
   l_1();
+
+/*
+  StaticJsonDocument<100> testDocument;
+ 
+  testDocument["sensorType"] = "temperature";
+  testDocument["sensorValue"] = 10;
+  
+  JsonObject documentRoot = testDocument.as<JsonObject>();
+ 
+  for (JsonPair keyValue : documentRoot) {
+    Serial.println(keyValue.value().as<String>());
+  }*/
 
 }
 
@@ -212,11 +238,6 @@ void loop() {
 
 
 
-
-
-
-
-/*
 void output_toJson(uint8_t pos, JsonObject & value, boolean shortKey, boolean fs){
     // len = 758
     JsonObject col = value.createNestedObject("c1");
@@ -297,4 +318,3 @@ void output_toJson(uint8_t pos, JsonObject & value, boolean shortKey, boolean fs
     }
     // fsprintf("[eff][pos: %d][name: %s]\n", _effects[pos]->getEn()  , _effects[pos]->getEffectName().c_str() );    
 }
-*/
