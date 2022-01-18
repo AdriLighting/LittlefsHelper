@@ -123,6 +123,8 @@ void SPIFFS_printFiles(const String & path){
     #else
     #endif    
 }
+
+
 void SPIFFS_fileRead(const String &ret){
     Serial.printf("\n[SPIFFS_fileRead][path: %s]\n", ret.c_str());
     int nbr = 0;
@@ -141,7 +143,30 @@ void SPIFFS_fileRead(const String &ret){
     } else Serial.printf("[SPIFFS_fileRead][FAILE OPEN FILE r]\n"); 
 }
 
-
+void SPIFFS_filesRead(const String & path){
+    #if defined(ESP8266)
+        // ADRI_LOG(-1, 0, 2,"","");
+        Dir dir = LittleFS.openDir(path);
+        Serial.println("");
+        Serial.println( F("[Print file and folder]"));
+        int totalsize = 0;
+        while (dir.next()) {
+            String fileInfo = dir.fileName() + (dir.isDirectory() ? " [DIR]" : String(" (") + dir.fileSize() + " b)");
+            if (dir.isDirectory()) {
+                // _SPIFFS_printFiles(dir.fileName());
+            } else  {
+                Serial.println(fileInfo);
+                SPIFFS_fileRead(dir.fileName());
+                totalsize += dir.fileSize();
+            }
+        }
+        Serial.printf_P(PSTR("\n[totalsize: %d b]\n"), totalsize);
+        Serial.println();
+        // ADRI_LOG(-1, 1, 2,"","");
+    #elif defined(ESP32)
+    #else
+    #endif    
+}
 
 
 
