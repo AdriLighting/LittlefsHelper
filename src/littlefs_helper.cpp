@@ -73,7 +73,9 @@ StaticJsonDocument<2048> DOC_LHCONF;
   }
 #endif
 
-int _SPIFFS_printFiles(const String & path){
+unsigned int _SPIFFS_printFiles_size;
+
+void _SPIFFS_printFiles(const String & path){
     #if defined(ESP8266)
         Dir sub_dir = LittleFS.openDir(path);
 
@@ -88,13 +90,14 @@ int _SPIFFS_printFiles(const String & path){
             }
         }
         if (totalsize > 0) Serial.printf_P(PSTR("\t\t\t[totalsize: %d b]\n"), totalsize); 
-        return totalsize; 
+        _SPIFFS_printFiles_size += totalsize;
+        // return totalsize; 
     #elif defined(ESP32)
-        return 0;
+        // return 0;
     #else
     #endif
 
-    return 0;
+    // return 0;
 }
 void SPIFFS_printFiles(const String & path){
     #if defined(ESP8266)
@@ -103,17 +106,17 @@ void SPIFFS_printFiles(const String & path){
         Serial.println("");
         Serial.println( F("[Print file and folder]"));
         int totalsize = 0;
+        _SPIFFS_printFiles_size = 0;
         while (dir.next()) {
             String fileInfo = dir.fileName() + (dir.isDirectory() ? " [DIR]" : String(" (") + dir.fileSize() + " b)");
             if (dir.isDirectory()) {
-                int dSize = _SPIFFS_printFiles(dir.fileName());
-                totalsize += dSize;
+                _SPIFFS_printFiles(dir.fileName());
             } else  {
                 Serial.println(fileInfo);
                 totalsize += dir.fileSize();
             }
         }
-        Serial.printf_P(PSTR("\n[totalsize: %d b]\n"), totalsize);
+        Serial.printf_P(PSTR("\n[totalsize: %d b]\n"), totalsize+_SPIFFS_printFiles_size);
         Serial.println();
         // ADRI_LOG(-1, 1, 2,"","");
     #elif defined(ESP32)
