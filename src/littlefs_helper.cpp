@@ -73,8 +73,52 @@ StaticJsonDocument<2048> DOC_LHCONF;
   }
 #endif
 
-unsigned int _SPIFFS_printFiles_size;
+/**
+ * @brief      split string with sep
+ *
+ * @param[in]  s      source String
+ * @param[in]  sep    separator to split 
+ * @param      rSize  size of array by ref
+ *
+ * @return     array of split values
+ */
+String * LH_explode(String s, char sep, int & rSize) {
+  String  t           = s + sep;
+  int     str_index   = 0;
+  int     list_index  = 0;
+  int     j;
+  String  sub;
+  int     size        = t.length();
 
+  while (str_index < size ) {
+    j=t.indexOf(sep,str_index);
+    if (j!=-1) {
+        list_index++;
+        str_index=j+1;
+    }
+  }
+
+  String * list = new String[list_index+1];
+
+  str_index   =0;
+  list_index  =0;
+  while (str_index < size ) {
+    j=t.indexOf(sep,str_index);
+    if (j!=-1) {
+      sub=t.substring(str_index, j);
+      list[list_index]=sub;
+      list_index++;
+      str_index=j+1;
+    }
+  }
+
+  list[list_index]="";
+  rSize = list_index;
+
+  return list;
+}
+
+unsigned int _SPIFFS_printFiles_size;
 void _SPIFFS_printFiles(const String & path){
     #if defined(ESP8266)
         Dir sub_dir = LittleFS.openDir(path);
@@ -84,7 +128,7 @@ void _SPIFFS_printFiles(const String & path){
         while (sub_dir.next()) {
             if (sub_dir.isDirectory()) _SPIFFS_printFiles(path + "/" + sub_dir.fileName());
             else {
-                String sub_fileInfo = sub_dir.fileName() + (sub_dir.isDirectory() ? " [sub_dir]" : String(" (") + sub_dir.fileSize() + " b)");
+                String sub_fileInfo = sub_dir.fileName() + String(" (") + sub_dir.fileSize() + " b)";
                 Serial.printf_P(PSTR("\t\t%s\n"), sub_fileInfo.c_str());   
                 totalsize += sub_dir.fileSize();
             }
@@ -108,7 +152,7 @@ void SPIFFS_printFiles(const String & path){
         int totalsize = 0;
         _SPIFFS_printFiles_size = 0;
         while (dir.next()) {
-            String fileInfo = dir.fileName() + (dir.isDirectory() ? " [DIR]" : String(" (") + dir.fileSize() + " b)");
+            String fileInfo = dir.fileName() + ( dir.isDirectory() ? String(" [DIR]") : String(" (") + dir.fileSize() + " b)");
             if (dir.isDirectory()) {
                 _SPIFFS_printFiles(dir.fileName());
             } else  {
@@ -124,52 +168,112 @@ void SPIFFS_printFiles(const String & path){
     #endif    
 }
 
-
 void SPIFFS_fileRead(const String &ret){
-    Serial.printf("\n[SPIFFS_fileRead][path: %s]\n", ret.c_str());
-    int nbr = 0;
-    File file = LittleFS.open(ret, "r");
-    if (file) {
-        while (file.position()<file.size()) {
-            String xml = file.readStringUntil('\n');
-            if (xml != "") {
-              Serial.printf("[%5d] %s\n", nbr, xml.c_str());
-              yield();
-              nbr++;
-            }
-        }
-        file.close();
-        Serial.printf("[SPIFFS_fileRead][SUCCES]\n"); 
-    } else Serial.printf("[SPIFFS_fileRead][FAILE OPEN FILE r]\n"); 
+  int nbr = 0;
+  File file = LittleFS.open(ret, "r");
+  if (file) {
+      Serial.printf_P(PSTR("[SPIFFS_fileRead][path: %s][size: %d bytes]\n"), ret.c_str(), file.size());
+      while (file.position()<file.size()) {
+          String xml = file.readStringUntil('\n');
+          if (xml != "") {
+            Serial.printf_P(PSTR("[%5d] %s\n"), nbr, xml.c_str());
+            yield();
+            nbr++;
+          }
+      }
+      file.close();
+      Serial.printf_P(PSTR("[SPIFFS_fileRead][SUCCES]\n")); 
+  } else {
+    Serial.printf_P(PSTR("[SPIFFS_fileRead][path: %s]\n"), ret.c_str());
+    Serial.printf_P(PSTR("[SPIFFS_fileRead][FAILE OPEN FILE r]\n")); }
 }
 
 void SPIFFS_filesRead(const String & path){
+  #if defined(ESP8266)
+    // ADRI_LOG(-1, 0, 2,"","");
+    Dir dir = LittleFS.openDir(path);
+    Serial.println("");
+    Serial.println( F("[Print file and folder]"));
+    int totalsize = 0;
+    while (dir.next()) {
+        // String fileInfo = "[" + dir.fileName() + "]" + (dir.isDirectory() ? " [DIR]" : String(" (") + dir.fileSize() + " bytes)");
+        if (dir.isDirectory()) {
+            // _SPIFFS_printFiles(dir.fileName());
+        } else  {
+            SPIFFS_fileRead(path + "/" + dir.fileName());
+            totalsize += dir.fileSize();
+        }
+    }
+    Serial.printf_P(PSTR("[totalsize: %d b]\n"), totalsize);
+    Serial.println();
+  #elif defined(ESP32)
+  #else
+  #endif    
+}
+
+
+void _SPIFFS_printFiles(const String & path, JsonObject & obj){
+    #if defined(ESP8266)
+        Dir sub_dir = LittleFS.openDir(path);
+
+        // Serial.printf_P(PSTR("\t[%s]\n"), path.c_str());
+        int totalsize = 0;
+        JsonObject root = obj.createNestedObject(path);
+        while (sub_dir.next()) {
+            if (sub_dir.isDirectory()) _SPIFFS_printFiles(path + "/" + sub_dir.fileName(), root);
+            else {
+                // String sub_fileInfo = sub_dir.fileName() + (sub_dir.isDirectory() ? " [sub_dir]" : String(" (") + sub_dir.fileSize() + " b)");
+                // Serial.printf_P(PSTR("\t\t%s\n"), sub_fileInfo.c_str());   
+                int LarraySize;
+                String * Larray = LH_explode(sub_dir.fileName(), '.', LarraySize);
+                JsonObject file = root.createNestedObject(Larray[LarraySize-2]);
+                file[F("file")] = sub_dir.fileName();
+                file[F("size")] = sub_dir.fileSize();   
+                delete[] Larray;               
+                totalsize += sub_dir.fileSize();
+            }
+        }
+        // if (totalsize > 0) Serial.printf_P(PSTR("\t\t\t[totalsize: %d b]\n"), totalsize); 
+        if (totalsize > 0) root[F("size")] = totalsize;
+        _SPIFFS_printFiles_size += totalsize;
+        // return totalsize; 
+    #elif defined(ESP32)
+        // return 0;
+    #else
+    #endif
+
+    // return 0;
+}
+void SPIFFS_printFiles(const String & path, JsonObject & obj){
     #if defined(ESP8266)
         // ADRI_LOG(-1, 0, 2,"","");
         Dir dir = LittleFS.openDir(path);
-        Serial.println("");
-        Serial.println( F("[Print file and folder]"));
         int totalsize = 0;
+        _SPIFFS_printFiles_size = 0;
+
+        JsonObject root = obj.createNestedObject(path);
         while (dir.next()) {
-            String fileInfo = dir.fileName() + (dir.isDirectory() ? " [DIR]" : String(" (") + dir.fileSize() + " b)");
             if (dir.isDirectory()) {
-                // _SPIFFS_printFiles(dir.fileName());
+                _SPIFFS_printFiles(dir.fileName(), root);
             } else  {
-                Serial.println(fileInfo);
-                SPIFFS_fileRead(dir.fileName());
+                int LarraySize;
+                String * Larray = LH_explode(dir.fileName(), '.', LarraySize);
+                JsonObject file = root.createNestedObject(Larray[LarraySize-2]);
+                file[F("file")] = dir.fileName();
+                file[F("size")] = dir.fileSize();   
+                delete[] Larray; 
                 totalsize += dir.fileSize();
             }
         }
-        Serial.printf_P(PSTR("\n[totalsize: %d b]\n"), totalsize);
-        Serial.println();
+        root[F("size")] = totalsize;
+        root[F("sizeTotal")] = totalsize+_SPIFFS_printFiles_size;
+        // Serial.printf_P(PSTR("\n[totalsize: %d b]\n"), totalsize+_SPIFFS_printFiles_size);
+        // Serial.println();
         // ADRI_LOG(-1, 1, 2,"","");
     #elif defined(ESP32)
     #else
     #endif    
 }
-
-
-
 
 /**
  * @brief   constructor

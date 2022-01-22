@@ -78,6 +78,7 @@
 
 void SPIFFS_fileRead(const String &ret);
 void SPIFFS_printFiles(const String & path);
+void SPIFFS_printFiles(const String & path, JsonObject & obj);
 void SPIFFS_filesRead(const String & path);
 
 #define STUFFING_CHAR '-'
