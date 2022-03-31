@@ -177,7 +177,7 @@ void SPIFFS_fileRead(const String &ret){
           String xml = file.readStringUntil('\n');
           if (xml != "") {
             Serial.printf_P(PSTR("[%5d] %s\n"), nbr, xml.c_str());
-            yield();
+            delay(2);
             nbr++;
           }
       }
