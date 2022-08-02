@@ -39,13 +39,18 @@
 #define LITTLEFS_HELPER_H
 
 #include <Arduino.h>
-#include <Arduino.h>
-#if defined(ESP8266)
-  #include <LittleFS.h>
-#elif defined(ESP32)
-  #include <SPIFFS.h>
-#else
-#endif
+    #ifdef FILESYSTEM 
+      #if defined USE_LITTLEFS
+        #if defined(ESP8266)
+          #include <LittleFS.h> 
+        #elif defined(ESP32)
+          #include <FS.h>
+          #include <LITTLEFS.h>
+        #endif
+      #elif defined USE_SPIFFS
+        #include <FS.h>
+      #endif
+    #endif  
 #include <ArduinoJson.h>
 
 
@@ -76,10 +81,10 @@
 #endif
 
 String * LH_explode(String s, char sep, int & rSize);
-void SPIFFS_fileRead(const String &ret);
-void SPIFFS_printFiles(const String & path);
-void SPIFFS_printFiles(const String & path, JsonObject & obj);
-void SPIFFS_filesRead(const String & path);
+// void SPIFFS_fileRead(const String &ret);
+// void SPIFFS_printFiles(const String & path);
+// void SPIFFS_printFiles(const String & path, JsonObject & obj);
+// void SPIFFS_filesRead(const String & path);
 
 #define STUFFING_CHAR '-'
 
@@ -118,8 +123,8 @@ class LH_file
 {
   String        * _LineArray = nullptr;
   LH_STATU      _STATU              = LHS_OK;           /**< \brief last error */
-  uint32_t      _line_maxSize       = 104;              /**< \brief nbr of char per line */
-  uint32_t      _line_configMaxSize = 104;              /**< \brief  */
+  uint32_t      _line_maxSize       = 120;              /**< \brief nbr of char per line */
+  uint32_t      _line_configMaxSize = 120;              /**< \brief  */
   uint32_t      _line_total         = 0;                /**< \brief nbr de ligne contenu dans le fichier */
   const char *  _path               = "/myFile_2.txt";  /**< \brief emplacement du fichier */
   JsonObject    _root;                                  /**< \brief json oject pour la configuration du fichier */

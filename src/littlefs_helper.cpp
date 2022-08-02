@@ -118,6 +118,7 @@ String * LH_explode(String s, char sep, int & rSize) {
   return list;
 }
 
+/*
 unsigned int _SPIFFS_printFiles_size;
 void _SPIFFS_printFiles(const String & path){
     #if defined(ESP8266)
@@ -274,6 +275,7 @@ void SPIFFS_printFiles(const String & path, JsonObject & obj){
     #else
     #endif    
 }
+*/
 
 /**
  * @brief   constructor
@@ -291,7 +293,7 @@ LH_file::LH_file(File & f, const char * path){
 }
 
 LH_file::~LH_file(){
-  if (LittleFS.exists(_path)) {close();savConfig();close();}
+  if (FILESYSTEM.exists(_path)) {close();savConfig();close();}
   if(_LineArray != nullptr) delete[] _LineArray;
 }
 
@@ -354,7 +356,7 @@ void LH_file::get_lineTotal(uint32_t & result)    {result = _line_total;}
 void LH_file::get_lineMaxSize(uint32_t & result)  {result = _line_maxSize;}
 
 void LH_file::open(File & f, const char * mod){
-  f = LittleFS.open(_path, mod);
+  f = FILESYSTEM.open(_path, mod);
 }
 void LH_file::open(const char * mod){
   #ifdef DEBUG_LH
@@ -366,7 +368,7 @@ void LH_file::open(const char * mod){
     }
   }
   _fileMod = mod;
-  _file = LittleFS.open(_path, mod);
+  _file = FILESYSTEM.open(_path, mod);
   if (_file)  _fileClose = false;
   else        _fileClose = true;
   #ifdef DEBUG_LH
@@ -398,7 +400,7 @@ boolean LH_file::start(File & f, const char * path){
 
 boolean LH_file::openConfig() {
 
-  if (!LittleFS.exists(_path)) {
+  if (!FILESYSTEM.exists(_path)) {
     String out;
 
     _line_total = 1;
